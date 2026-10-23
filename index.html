@@ -404,6 +404,12 @@
     </div>
 
     <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
         const products = [
             { id: 1, name: "Малиновый закат", ingredients: "Малина, клубника, шоколад, джин, молоко, сливки", img: "malinoviy_zakat.png" },
             { id: 2, name: "Поцелуй на пляже", ingredients: "Персиковый ликёр, водка, клюква, молоко, сливки", img: "potseluy_na_plyazhe.png" },
@@ -478,7 +484,11 @@
 
         function toggleCartModal(show) {
             if (show && cart.length === 0) {
-                alert('Корзина пуста');
+                if (tg && tg.showAlert) {
+                    tg.showAlert('Корзина пуста');
+                } else {
+                    alert('Корзина пуста');
+                }
                 return;
             }
             const modal = document.getElementById('cartModal');
@@ -514,15 +524,27 @@
 
         function sendOrder() {
             if (cart.length === 0) {
-                alert('Выберите хотя бы одну порцию мороженого');
+                if (tg && tg.showAlert) {
+                    tg.showAlert('Выберите хотя бы одну порцию мороженого');
+                } else {
+                    alert('Выберите хотя бы одну порцию мороженого');
+                }
                 return;
             }
+
             const total = cart.reduce((sum, item) => sum + item.price, 0);
-            const orderText = cart.map(i => `• ${i.name} (${i.size}g) — ${i.price}₸`).join('\n');
-            
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                window.Telegram.WebApp.sendData(JSON.stringify({ cart, total }));
+            const data = JSON.stringify({ cart, total });
+
+            if (tg && typeof tg.sendData === 'function') {
+                try {
+                    tg.sendData(data);
+                    tg.close();
+                } catch (e) {
+                    const orderText = cart.map(i => `• ${i.name} (${i.size}g) — ${i.price}₸`).join('\n');
+                    alert(`Ваш заказ записан:\n\n${orderText}\n\nИтого: ${total} ₸`);
+                }
             } else {
+                const orderText = cart.map(i => `• ${i.name} (${i.size}g) — ${i.price}₸`).join('\n');
                 alert(`Ваш заказ:\n\n${orderText}\n\nИтого: ${total} ₸`);
             }
         }
@@ -531,5 +553,3 @@
     </script>
 </body>
 </html>
-```
-
